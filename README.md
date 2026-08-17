@@ -5,7 +5,7 @@
 ## 在线访问
 
 本站已通过 GitHub Pages 部署，直接访问：
-**https://lesu7436-ux.github.io/wentu-xingji/**
+**https://lesu7436-ux.github.io/Literary-Trails/**
 
 ## 功能
 
