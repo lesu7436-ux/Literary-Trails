@@ -1,0 +1,1 @@
+import{d as a,c as o,b as s,t as n,I as r,m as c,g as i}from"./index-CIOekt0W.js";const p={class:"page"},u=a({__name:"CityView",setup(d){const t=c();return(l,e)=>(i(),o("div",p,[s("h1",null,"城市详情 #"+n(r(t).params.id),1),e[0]||(e[0]=s("div",{class:"card empty"}," 城市详情页占位 —— 地图定位、到过此城的作家、关联事件与作品（后续实现）。 ",-1))]))}});export{u as default};
