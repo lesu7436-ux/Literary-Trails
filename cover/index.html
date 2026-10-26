@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>文途行迹 · 入场动画预览</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#f6f7f2;color:#2f5d2a;display:flex;flex-direction:column;justify-content:center;font-family:system-ui,sans-serif}main{width:100%;margin:auto}canvas{display:block;width:100%;height:auto}footer{display:flex;justify-content:center;align-items:center;gap:20px;padding:24px;font-size:14px;color:#6f7a6c}button{background:#2f5d2a;color:#f6f7f2;border:0;border-radius:24px;padding:11px 25px;cursor:pointer;font:inherit}button:focus-visible{outline:3px solid #8da37c;outline-offset:4px}
+</style>
+<main style="position:relative"><canvas role="img" aria-label="文途行迹，标题在1.6秒内从中间向两侧展开，山水背景静止"></canvas><canvas id="ripples" aria-hidden="true" style="position:absolute;inset:0;pointer-events:none"></canvas></main>
+<footer><button type="button" disabled>重播动画</button><span>从中间向两侧展开 · 1.6 秒</span></footer>
+<script>
+if(new URLSearchParams(location.search).has("embed"))document.querySelector("footer").style.display="none";
+
+const canvas=document.querySelector('main canvas'),ctx=canvas.getContext('2d'),button=document.querySelector('button');
+const original=new Image(),background=new Image();let frame;
+function loaded(img,src){return new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=src})}
+Promise.all([loaded(original,'cover.png'),loaded(background,'background.png')]).then(()=>{
+ canvas.width=original.naturalWidth;canvas.height=original.naturalHeight;
+ const w=canvas.width,h=canvas.height;
+ const scene=document.createElement('canvas');scene.width=w;scene.height=h;const sceneCtx=scene.getContext('2d');
+ // A feathered cover only over the title; all mountains and the subtitle stay original.
+ const left=w*.263,right=w*.735,top=h*.237,bottom=h*.63,feather=w*.012;
+ const cover=document.createElement('canvas');cover.width=w;cover.height=h;const c=cover.getContext('2d');
+ c.drawImage(background,0,0,w,h);c.globalCompositeOperation='destination-in';
+ let g=c.createLinearGradient(left,0,right,0);g.addColorStop(0,'transparent');g.addColorStop(feather/(right-left),'black');g.addColorStop(1-feather/(right-left),'black');g.addColorStop(1,'transparent');c.fillStyle=g;c.fillRect(left,top,right-left,bottom-top);
+ // Clear outside the region explicitly (destination-in fill only affects its bounds).
+ c.clearRect(0,0,w,top);c.clearRect(0,bottom,w,h-bottom);c.clearRect(0,top,left,bottom-top);c.clearRect(right,top,w-right,bottom-top);
+ g=c.createLinearGradient(0,top,0,bottom);g.addColorStop(0,'transparent');g.addColorStop(.055,'black');g.addColorStop(.945,'black');g.addColorStop(1,'transparent');c.fillStyle=g;c.fillRect(left,top,right-left,bottom-top);
+ const mask=document.createElement('canvas');mask.width=w;mask.height=h;const m=mask.getContext('2d');
+ function draw(p){
+   ctx.drawImage(original,0,0);
+   if(p>=1)return;
+   m.clearRect(0,0,w,h);m.globalCompositeOperation='source-over';m.drawImage(cover,0,0);
+   m.globalCompositeOperation='destination-in';
+   const eased=p*p*(3-2*p),center=(left+right)/2,half=(right-left+feather*4)*eased/2;
+   const sweep=m.createLinearGradient(left-feather*2,0,right+feather*2,0);
+   const full=right-left+feather*4;
+   const l=Math.max(0,Math.min(.5,(center-half-left+feather*2)/full));
+   const r=1-l,soft=Math.min(.025,eased*.1);
+   sweep.addColorStop(0,'black');sweep.addColorStop(Math.max(0,l-soft),'black');
+   sweep.addColorStop(l,'transparent');sweep.addColorStop(r,'transparent');
+   sweep.addColorStop(Math.min(1,r+soft),'black');sweep.addColorStop(1,'black');
+   m.fillStyle=sweep;m.fillRect(0,0,w,h);ctx.drawImage(mask,0,0);
+ }
+ function play(){cancelAnimationFrame(frame);draw(0);let start;function tick(now){if(start===undefined)start=now;const p=Math.min((now-start)/1600,1);draw(p);if(p<1)frame=requestAnimationFrame(tick)}frame=requestAnimationFrame(tick)}
+ button.disabled=false;button.addEventListener('click',play);if(matchMedia('(prefers-reduced-motion: reduce)').matches)draw(1);else play();
+}).catch(()=>{document.querySelector('footer span').textContent='图片加载失败，请将本文件和两张图片放在同一文件夹后重试。'});
+</script>
+</html>
+
+<script>
+// Transparent pointer-triggered ripple layer, with no idle fabric or background fill.
+const surface=document.querySelector('main'),rippleCanvas=document.querySelector('#ripples'),rippleCtx=rippleCanvas.getContext('2d');
+const motion=matchMedia('(prefers-reduced-motion: reduce)');
+let waves=[],animation=0,last=0,lastX=-999,lastY=-999,width=1,height=1;
+function resize(){const rect=surface.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);width=rect.width;height=rect.height;rippleCanvas.width=Math.round(width*dpr);rippleCanvas.height=Math.round(height*dpr);rippleCtx.setTransform(dpr,0,0,dpr,0,0)}
+const observer=new ResizeObserver(resize);observer.observe(surface);
+function paint(now){rippleCtx.clearRect(0,0,width,height);waves=waves.filter(w=>now-w.time<1500);for(const w of waves){const t=(now-w.time)/1500,fade=Math.pow(1-t,2),radius=8+95*t;for(let ring=0;ring<3;ring++){const r=radius-ring*11;if(r<2)continue;rippleCtx.beginPath();rippleCtx.ellipse(w.x,w.y,r,r*.76,0,0,Math.PI*2);rippleCtx.lineWidth=1.1-ring*.2;rippleCtx.strokeStyle=`rgba(67,103,65,${fade*(.20-ring*.045)})`;rippleCtx.stroke();rippleCtx.beginPath();rippleCtx.ellipse(w.x,w.y,r+1.6,(r+1.6)*.76,0,0,Math.PI*2);rippleCtx.strokeStyle=`rgba(255,255,242,${fade*.27})`;rippleCtx.stroke()}}animation=waves.length?requestAnimationFrame(paint):0}
+function ripple(event){if(motion.matches||event.pointerType==='touch')return;const now=performance.now(),rect=surface.getBoundingClientRect(),x=event.clientX-rect.left,y=event.clientY-rect.top;if(now-last<95||Math.hypot(x-lastX,y-lastY)<9)return;last=now;lastX=x;lastY=y;waves.push({x,y,time:now});if(waves.length>16)waves.shift();if(!animation)animation=requestAnimationFrame(paint)}
+surface.addEventListener('pointermove',ripple,{passive:true});surface.addEventListener('pointerleave',()=>{lastX=lastY=-999});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(animation);animation=0;waves=[];rippleCtx.clearRect(0,0,width,height)}});
+</script>
