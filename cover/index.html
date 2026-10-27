@@ -9,7 +9,7 @@
 <main style="position:relative"><canvas role="img" aria-label="文途行迹，标题在1.6秒内从中间向两侧展开，山水背景静止"></canvas><canvas id="ripples" aria-hidden="true" style="position:absolute;inset:0;pointer-events:none"></canvas></main>
 <footer><button type="button" disabled>重播动画</button><span>从中间向两侧展开 · 1.6 秒</span></footer>
 <script>
-if(new URLSearchParams(location.search).has("embed"))document.querySelector("footer").style.display="none";
+if(new URLSearchParams(location.search).has("embed")){document.querySelector("footer").style.display="none";document.documentElement.style.overflow="hidden";document.body.style.overflow="hidden";}
 
 const canvas=document.querySelector('main canvas'),ctx=canvas.getContext('2d'),button=document.querySelector('button');
 const original=new Image(),background=new Image();let frame;
